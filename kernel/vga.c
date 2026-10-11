@@ -1,70 +1,53 @@
 #include "vga.h"
 #include <stdarg.h>
 
-// VGA text mode dimensions
-#define VGA_WIDTH   80
-#define VGA_HEIGHT  25
-
-// VGA buffer pointer
-static volatile u16 *vga_buffer = (u16 *)0xB8000;
-static int cursor_x = 0;
-static int cursor_y = 0;
-static u8 color = 0x07; // Default color: light gray on black
-
-// Initialize the VGA text mode
 void vga_init(void) {
     vga_clear();
 }
 
-// Set the color for text output
+static void serial_put_decimal(unsigned value) {
+    char digits[3];
+    unsigned count = 0;
+    do {
+        digits[count++] = (char)('0' + value % 10);
+        value /= 10;
+    } while (value != 0);
+    while (count != 0) {
+        serial_putc(digits[--count]);
+    }
+}
+
 void vga_set_color(u8 fg, u8 bg) {
-    color = (bg << 4) | (fg & 0x0F); // Set the color attribute for text output
+    static const u8 ansi_colors[16] = {
+        30, 34, 32, 36, 31, 35, 33, 37,
+        90, 94, 92, 96, 91, 95, 93, 97
+    };
+    u8 foreground = ansi_colors[fg & 0x0F];
+    u8 background = (u8)(((bg & 0x08) ? 100 : 40) + (bg & 0x07));
+    framebuffer_console_set_color(fg, bg);
+    serial_putc('\x1b');
+    serial_putc('[');
+    serial_put_decimal(foreground);
+    serial_putc(';');
+    serial_put_decimal(background);
+    serial_putc('m');
 }
 
-// Fill the screen with spaces and the current color
 void vga_clear(void) {
-    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-        vga_buffer[i] = (color << 8) | ' '; // Fill the screen with spaces and the current color
-    }
-    cursor_x = 0;
-    cursor_y = 0;
-}
-
-static void scroll(void) {
-    for (int y = 0; y < VGA_HEIGHT - 1; y++) {
-        for (int x = 0; x < VGA_WIDTH; x++) {
-            vga_buffer[y * VGA_WIDTH + x] = vga_buffer[(y + 1) * VGA_WIDTH + x];
-        }
-    }
-    for (int x = 0; x < VGA_WIDTH; x++) {
-        vga_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + x] = (color << 8) | ' ';
-    }
-    cursor_y = VGA_HEIGHT - 1;
+    vga_puts("\x1b[2J\x1b[H");
+    framebuffer_console_clear();
 }
 
 void vga_putc(char c) {
-    if ( c == '\n') {
-        cursor_x = 0;
-        cursor_y++;
-    } else if (c == '\r') {
-        cursor_x = 0;
-    } else if (c == '\b') {
-        if (cursor_x > 0) {
-            cursor_x--;
-            vga_buffer[cursor_y * VGA_WIDTH + cursor_x] = color << 8 | ' ';
-        }
-    } else if (c == '\t') {
-        cursor_x = (cursor_x + 4) $ ~3;
-    } else {
-        vga_buffer[cursor_y * VGA_WIDTH + cursor_x] = (color << 8) | (u8)c;
+    if (c == '\b') {
+        serial_putc('\b');
+        serial_putc(' ');
+        serial_putc('\b');
+        framebuffer_console_putc(c);
+        return;
     }
-    if (cursor_x >= VGA_WIDTH) {
-        cursor_x = 0;
-        cursor_y++;
-    }
-    if (cursor_y >= VGA_HEIGHT) {
-        scroll();
-    }
+    serial_putc(c);
+    framebuffer_console_putc(c);
 }
 
 void vga_puts(const char *s) {
@@ -73,7 +56,7 @@ void vga_puts(const char *s) {
     }
 }
 
-// Print formatted output to the VGA text mode
+// Print formatted output to the console
 static void print_uint(u64 value, int base, int uppercase) {
     char buffer[32]; // Buffer to hold the converted number as a string
     const char *digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef"; // Choose the appropriate digit characters based on the uppercase flag
@@ -123,15 +106,15 @@ void vga_printf(const char *fmt, ...) {
                 }
             }
             case 'u': {
-                print_uint(va_arg(args, u64), 10, 0);
+                print_uint(va_arg(args, unsigned int), 10, 0);
                 break;
             }
             case 'x': {
-                print_uint(va_arg(args, u64), 16, 0);
+                print_uint(va_arg(args, unsigned int), 16, 0);
                 break;
             }
             case 'X': {
-                print_uint(va_arg(args, u64), 16, 1);
+                print_uint(va_arg(args, unsigned int), 16, 1);
                 break;
             }
             case 'p': {
