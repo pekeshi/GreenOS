@@ -95,7 +95,11 @@ int keyboard_haschar(void) {
 
 u16 keyboard_getchar(void) {
     while (buffer_head == buffer_tail) {
-        keyboard_wait_for_input();
+        usb_keyboard_poll();
+        serial_poll_input();
+        if (buffer_head == buffer_tail) {
+            keyboard_wait_for_input();
+        }
     }
     u16 c = kbd_buffer[buffer_tail];
     buffer_tail = (buffer_tail + 1) % KEYBOARD_BUFFER_SIZE;

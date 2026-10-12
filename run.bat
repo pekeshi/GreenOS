@@ -55,6 +55,7 @@ if defined OVMF_VARS (
     echo Serial log: "%SERIAL_LOG%"
     "%QEMU_EXE%" -name "GreenyOS - 0.1 - pekeshi" -machine q35 -m 256M ^
         -display sdl ^
+        -device qemu-xhci -device usb-kbd ^
         -drive "if=pflash,format=raw,unit=0,file=%OVMF_CODE%,readonly=on" ^
         -drive "if=pflash,format=raw,unit=1,file=%OVMF_VARS_RUN%" ^
         -drive "format=raw,file=fat:rw:%ESP_DIR%,if=ide,index=0" ^
@@ -62,7 +63,8 @@ if defined OVMF_VARS (
 ) else (
     echo WARNING: No OVMF variable-store image found; using firmware without persistent variables.
     echo Serial log: "%SERIAL_LOG%"
-    "%QEMU_EXE%" -name "GreenyOS - 0.1 - pekeshi" -machine q35 -m 256M -display sdl -bios "%OVMF_CODE%" ^
+    "%QEMU_EXE%" -name "GreenyOS - 0.1 - pekeshi" -machine q35 -m 256M -display sdl ^
+        -device qemu-xhci -device usb-kbd -bios "%OVMF_CODE%" ^
         -drive "format=raw,file=fat:rw:%ESP_DIR%,if=ide,index=0" ^
         -serial "file:%SERIAL_LOG%" -monitor none
 )

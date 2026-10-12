@@ -327,7 +327,7 @@ static void console_render_history(void) {
 
     console_fill_rect(
         terminal_left, terminal_top,
-        terminal_columns * CONSOLE_CELL_WIDTH,
+        screen.width - terminal_left - (FRAME_MARGIN + WINDOW_BORDER),
         terminal_rows * CONSOLE_CELL_HEIGHT, terminal_background);
 
     u32 start = console_history_start();
@@ -358,7 +358,8 @@ static void console_render_history(void) {
 }
 
 static void console_scroll(void) {
-    u32 copy_width = terminal_columns * CONSOLE_CELL_WIDTH;
+    u32 copy_width =
+        screen.width - terminal_left - (FRAME_MARGIN + WINDOW_BORDER);
     u32 copy_height = (terminal_rows - 1) * CONSOLE_CELL_HEIGHT;
     u32 *destination = (u32 *)(uintptr_t)screen.address;
     for (u32 y = 0; y < copy_height; y++) {
@@ -369,9 +370,12 @@ static void console_scroll(void) {
         volatile u32 *src = (volatile u32 *)(
             destination + (u64)(terminal_top + CONSOLE_CELL_HEIGHT + y)
             * screen.pixels_per_scan_line + terminal_left);
-        for (u32 x = 0; x < copy_width; x++) {
-            dst[x] = src[x];
-        }
+        u32 pixels_to_copy = copy_width;
+        __asm__ volatile(
+            "cld; rep movsl"
+            : "+D"(dst), "+S"(src), "+c"(pixels_to_copy)
+            :
+            : "memory");
     }
     console_fill_rect(
         terminal_left, terminal_top + copy_height,

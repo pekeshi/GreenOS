@@ -6,6 +6,7 @@
 #include "boot_info.h"
 
 #define GREENYOS_VERSION "0.1.2"
+#define KERNEL_IDENTITY_MAP_SIZE (1024ULL * 1024 * 1024 * 1024)
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -28,12 +29,15 @@ void interrupts_init(void);
 u64 timer_ticks_since_boot(void);
 void gdt_init(void);
 void paging_init(void);
+int paging_mark_uncached(u64 physical_address, u64 length);
 void memory_init(const GreenyOSBootInfo *boot_info);
 u64 memory_free_pages(void);
 void *page_allocate(void);
 void page_free(void *address);
 void keyboard_wait_for_input(void);
 int keyboard_controller_init(void);
+int usb_keyboard_init(void);
+void usb_keyboard_poll(void);
 void framebuffer_init(const GreenyOSFramebuffer *framebuffer);
 void framebuffer_clear(u8 red, u8 green, u8 blue);
 void framebuffer_fill_rect(

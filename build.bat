@@ -54,6 +54,7 @@ if errorlevel 1 exit /b 1
     "%ROOT%kernel\interrupts.c" ^
     "%ROOT%kernel\power.c" ^
     "%ROOT%kernel\serial.c" ^
+    "%ROOT%kernel\usb_xhci.c" ^
     "%ROOT%kernel\framebuffer.c" ^
     "%ROOT%kernel\keyboard.c" ^
     "%ROOT%kernel\shell.c" ^

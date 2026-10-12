@@ -24,7 +24,8 @@ The scripts accept `EFI_CC`, `KERNEL_CC`, `QEMU_EXE`, `OVMF_CODE`, and
 `build\esp\EFI\BOOT\BOOTX64.EFI` and the kernel at `build\esp\KERNEL.ELF`.
 
 The QEMU window displays the kernel shell on the GOP framebuffer. Type commands
-into the focused QEMU window; the kernel reads the emulated PS/2 keyboard. COM1
+into the focused QEMU window; the kernel supports xHCI USB HID boot keyboards
+and legacy PS/2 input. COM1
 output is captured in a per-run `build\serial-*.log` file for boot diagnostics,
 and COM1 input remains available while QEMU is running from a terminal. Each
 run also gets its own writable OVMF variable store, so starting another QEMU
@@ -49,11 +50,13 @@ calls `ExitBootServices`, and jumps to the kernel entry point with a versioned
 64 MiB physical address.
 
 The kernel initializes a physical-page allocator from conventional UEFI memory,
-installs its own identity-mapped page tables for the first 16 GiB, loads its own
+installs its own identity-mapped page tables for the first 1 TiB (with the
+region above 16 GiB marked uncached for PCI MMIO), loads its own
 GDT and IDT, remaps the legacy PIC, and programs a 100 Hz PIT timer. The shell
-renders text on the framebuffer and reads the emulated PS/2 keyboard. The COM1
-driver remains available for diagnostics and optional keyboard input. The
-framebuffer shell currently uses a compact uppercase bitmap font.
+renders text on the framebuffer. The xHCI driver discovers PCI USB controllers,
+enumerates directly attached HID boot keyboards, and polls reports; legacy PS/2
+and COM1 input remain available as fallbacks. The framebuffer shell currently
+uses a compact uppercase bitmap font.
 
 ## Next milestones
 

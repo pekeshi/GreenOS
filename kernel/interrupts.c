@@ -97,7 +97,6 @@ void interrupts_init(void) {
 
 void kernel_timer_tick(void) {
     timer_ticks++;
-    serial_poll_input();
     outb(0x20, 0x20);
 }
 

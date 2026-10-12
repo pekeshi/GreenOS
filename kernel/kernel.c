@@ -16,7 +16,7 @@ void kernel_main(GreenyOSBootInfo *boot_info) {
     framebuffer_init(&boot_info->framebuffer);
     framebuffer_console_init();
     vga_init();
-    vga_puts("GreenyOS freestanding kernel\n");
+    vga_puts("GreenyOS kernel\n");
     vga_printf("Boot handoff v%u received.\n", boot_info->version);
     vga_printf("Framebuffer: %ux%u at %p.\n",
         boot_info->framebuffer.width,
@@ -50,7 +50,12 @@ void kernel_main(GreenyOSBootInfo *boot_info) {
     vga_puts("Kernel IDT installed; PIT timer interrupt running at 100 Hz.\n");
 
     keyboard_init();
+    if (usb_keyboard_init()) {
+        vga_puts("Native USB keyboard ready (xHCI).\n");
+    } else {
+        vga_puts("No native USB keyboard found; PS/2/serial input remains available.\n");
+    }
     shell_init();
-    vga_puts("Shell is on the framebuffer. Type in the QEMU window.\n");
+    vga_puts("Shell is on the framebuffer.\n");
     shell_run();
 }
